@@ -2,7 +2,8 @@
 
 A study planner for VCE 2027. Study with a focus timer, keep a streak, earn gems and spend them in a shop you set up yourself.
 
-- **Focus screen:** a full-screen view while you study, with the session clock, local time, time left to your goal, the time you will reach it, gems so far, pause and done, plus the notes and checklist for what you are working on and the rest of your to-do list. Minimise it to keep browsing.
+- **Starting a session:** one list of your tasks. Tap a task and the timer starts; or study a subject, or just study.
+- **Focus screen:** full-screen while you study: session clock, local time, time left to your goal and the time you will reach it, gems so far, pause and end. On the right, a Now card for the current task (with Complete), then Up next (tap a task to switch; time is split per task) and Notes. Minimise it to keep browsing.
 - **Pages:** every task and every subject has its own page with properties and a block editor (text, headings, lists, to-dos). Type `-`, `[]` or `#` at the start of a line to convert it.
 - **Goals:** 60 minutes each weeknight, 240 minutes across the weekend (Saturday and Sunday are one goal). Both are editable.
 - **Gems** come only from studying: per minute, plus bonuses for meeting a goal and for streak milestones. There is no way to add gems by hand.

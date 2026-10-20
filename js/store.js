@@ -28,7 +28,7 @@
       shop: [
         { id: 'freeze', name: 'Streak freeze', price: 150, kind: 'freeze' }
       ],
-      active: null           // { start, subjectId, todoId, pausedAt, pausedMs } while the timer runs
+      active: null           // { start, subjectId, todoId, pausedAt, pausedMs, segs, segBase } while the timer runs; segs are earlier tasks this session
     };
   }
   // A block is one line of a page: { id, type: 'text' | 'h' | 'bullet' | 'todo', text, done }
@@ -38,7 +38,7 @@
     const s = Object.assign(base, d, { settings: Object.assign(base.settings, d.settings || {}) });
     s.subjects.forEach((x, i) => { if (!x.color) x.color = PALETTE[i % PALETTE.length]; if (!Array.isArray(x.blocks)) x.blocks = []; });
     s.todos.forEach(t => { if (!Array.isArray(t.blocks)) t.blocks = []; if (t.due == null) t.due = ''; });
-    if (s.active) { s.active.pausedAt = s.active.pausedAt || 0; s.active.pausedMs = s.active.pausedMs || 0; }
+    if (s.active) { s.active.pausedAt = s.active.pausedAt || 0; s.active.pausedMs = s.active.pausedMs || 0; s.active.segs = s.active.segs || []; s.active.segBase = s.active.segBase || 0; }
     return s;
   }
 

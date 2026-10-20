@@ -89,6 +89,9 @@
       d.setupDone = true;
     } else if (kind === 'todo') {
       d.todos.push({ id: Store.uid(), title: val('title'), subjectId: val('subjectId'), levelId: val('levelId'), due: val('due'), done: false, at: Date.now(), blocks: [] });
+    } else if (kind === 'focus-add') {
+      d.todos.push({ id: Store.uid(), title: val('title'), subjectId: d.active ? d.active.subjectId : '', levelId: '', due: '', done: false, at: Date.now(), blocks: [] });
+      U.focusTab = 'next';
     } else if (kind === 'subject-task') {
       d.todos.push({ id: Store.uid(), title: val('title'), subjectId: f.dataset.id, levelId: val('levelId'), due: '', done: false, at: Date.now(), blocks: [] });
     } else if (kind === 'subject-add' || kind === 'subject-page-add') {
@@ -104,11 +107,12 @@
   });
 
   /* ---------- clicks ---------- */
+  /* Start the timer on a task or subject, or move a running timer onto it. */
   function startOn(todoId, subjectId) {
     const d = S(), now = Date.now();
-    if (d.active) { d.active.todoId = todoId; d.active.subjectId = subjectId; }
+    if (d.active) L.switchTo(d, todoId, subjectId, now);
     else L.startSession(d, subjectId, todoId, now);
-    U.minimized = false; U.finishTask = false; U.startOpen = false;
+    U.minimized = false; U.startOpen = false;
   }
 
   $app.addEventListener('click', e => {
@@ -117,9 +121,18 @@
     if (b.classList.contains('modal-back') && e.target !== b) return;
     const d = S(), act = b.dataset.act, id = b.dataset.id, now = Date.now();
     switch (act) {
-      case 'open-start': U.startOpen = true; U.draft = { subjectId: '', todoId: '' }; U.focusSel = '#m-todo'; break;
+      case 'open-start': U.startOpen = true; U.pickQ = ''; U.pickSubject = ''; U.focusSel = '#m-q'; break;
       case 'close-start': U.startOpen = false; break;
-      case 'begin': L.startSession(d, U.draft.subjectId, U.draft.todoId, now); U.startOpen = false; U.minimized = false; U.finishTask = false; break;
+      case 'pick-task': { const t = todoOf(id); if (!t) return; startOn(id, t.subjectId); break; }
+      case 'pick-subject': startOn('', id); break;
+      case 'pick-open': startOn('', ''); break;
+      case 'pick-filter': U.pickSubject = id; U.focusSel = '#m-q'; break;
+      case 'switch-task': {
+        const t = todoOf(id), keep = d.active && !t ? d.active.subjectId : '';
+        if (d.active) L.switchTo(d, id, t ? t.subjectId : keep, now); break;
+      }
+      case 'complete-current': { const t = d.active && todoOf(d.active.todoId); if (t) t.done = !t.done; break; }
+      case 'focus-tab': U.focusTab = id; break;
       case 'study-task': { const t = todoOf(id); if (!t) return; startOn(id, t.subjectId); break; }
       case 'study-subject': startOn('', id); break;
       case 'pause': L.pause(d, now); break;
@@ -128,14 +141,12 @@
       case 'restore': U.minimized = false; break;
       case 'done': {
         const r = L.endSession(d, now); if (!r) break;
-        const t = todoOf(r.todoId); if (U.finishTask && t) t.done = true;
-        U.summary = r; U.finishTask = false; U.minimized = false; document.title = '27Study'; break;
+        U.summary = r; U.minimized = false; document.title = '27Study'; break;
       }
       case 'close-summary': U.summary = null; break;
       case 'discard':
         if (!confirm('Discard this session? The time will not count.')) return;
-        d.active = null; U.finishTask = false; document.title = '27Study'; break;
-      case 'set-current': { const t = todoOf(id); if (t && d.active) { d.active.todoId = id; if (t.subjectId) d.active.subjectId = t.subjectId; } break; }
+        d.active = null; document.title = '27Study'; break;
       case 'toggle': { const t = todoOf(id); if (t) t.done = b.checked; break; }
       case 'del-todo':
         if (!confirm('Delete this task?')) return;
@@ -178,6 +189,7 @@
 
   /* ---------- page text: block editing ---------- */
   $app.addEventListener('input', e => {
+    if (e.target.dataset && e.target.dataset.filter === 'pick') { U.pickQ = e.target.value; U.focusSel = '#m-q'; render(); return; }
     const ta = e.target; if (!ta.dataset || !ta.dataset.blk) return;
     const box = ta.closest('.blocks'), arr = blocksOf(box.dataset.ent, box.dataset.eid), b = arr && arr.find(x => x.id === ta.dataset.blk);
     if (!b) return;
@@ -237,15 +249,6 @@
     if (t.dataset.blkCheck) {
       const box = t.closest('.blocks'), arr = blocksOf(box.dataset.ent, box.dataset.eid), b = arr && arr.find(x => x.id === t.dataset.blkCheck);
       if (b) { b.done = t.checked; commit(); } return;
-    }
-    if (t.dataset.bind) {
-      const k = t.dataset.bind, a = d.active;
-      if (k === 'finish-task') { U.finishTask = t.checked; return; }
-      if (k === 'draft-todo') { U.draft.todoId = t.value; const td = todoOf(t.value); if (td && td.subjectId) U.draft.subjectId = td.subjectId; }
-      else if (k === 'draft-subject') U.draft.subjectId = t.value;
-      else if (k === 'active-todo' && a) { a.todoId = t.value; const td = todoOf(t.value); if (td && td.subjectId) a.subjectId = td.subjectId; }
-      else if (k === 'active-subject' && a) a.subjectId = t.value;
-      commit(); return;
     }
     if (f) {
       const todo = todoOf(id), sub = d.subjects.find(x => x.id === id);

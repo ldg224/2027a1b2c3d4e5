@@ -40,8 +40,16 @@
       (a.due || '9999').localeCompare(b.due || '9999') || b.at - a.at);
   }
 
-  function taskRow(t) {
+  /* One task row. table = the columned layout on the Tasks page; otherwise a compact card row. */
+  function taskRow(t, table) {
     const secs = L.taskSecs(S(), t.id);
+    if (table === true) {
+      return '<li class="trow table' + (t.done ? ' done' : '') + '"><input class="check" type="checkbox" data-act="toggle" data-id="' + t.id + '"' + (t.done ? ' checked' : '') + ' aria-label="Done: ' + esc(t.title) + '">' +
+        '<a class="t" href="#task/' + t.id + '">' + esc(t.title || 'Untitled') + '</a>' +
+        '<span class="c-sub">' + tagSubject(t.subjectId) + '</span><span class="c-lvl">' + tagLevel(t.levelId) + '</span><span class="c-due">' + dueTag(t) + '</span>' +
+        '<span class="c-time">' + (secs ? '<span class="mini">' + icon('clock', 13) + dur(secs) + '</span>' : '') + '</span>' +
+        '<span class="c-go">' + (t.done ? '' : '<button class="btn small" data-act="study-task" data-id="' + t.id + '" aria-label="Study ' + esc(t.title) + '">' + icon('play', 12) + 'Study</button>') + '</span></li>';
+    }
     return '<li class="trow' + (t.done ? ' done' : '') + '"><input class="check" type="checkbox" data-act="toggle" data-id="' + t.id + '"' + (t.done ? ' checked' : '') + ' aria-label="Done: ' + esc(t.title) + '">' +
       '<a class="t" href="#task/' + t.id + '">' + esc(t.title || 'Untitled') + '</a>' +
       '<span class="meta">' + tagSubject(t.subjectId) + tagLevel(t.levelId) + dueTag(t) + (secs ? '<span class="mini">' + icon('clock', 13) + dur(secs) + '</span>' : '') + '</span>' +
@@ -167,7 +175,7 @@
       '<input type="date" name="due" aria-label="Due date"><button class="btn primary" type="submit">Add task</button></form>' +
       '<div class="toolbar"><div class="seg">' + seg('open', 'To do', U.taskTab, 'task-tab') + seg('done', 'Finished', U.taskTab, 'task-tab') + '</div>' +
       '<div class="seg"><span class="seg-l">Group by</span>' + seg('importance', 'Importance', U.taskGroup, 'task-group') + seg('subject', 'Subject', U.taskGroup, 'task-group') + seg('due', 'Due date', U.taskGroup, 'task-group') + '</div></div>' +
-      (groups.length ? groups.map(g => '<section class="card group"><div class="card-h"><h2>' + (g.color ? '<span class="swatch" style="--c:' + g.color + '"></span>' : '') + esc(g.title) + '</h2><span class="sub">' + g.items.length + '</span></div><ul class="list">' + g.items.map(taskRow).join('') + '</ul></section>').join('')
+      (groups.length ? groups.map(g => '<section class="card group"><div class="card-h"><h2>' + (g.color ? '<span class="swatch" style="--c:' + g.color + '"></span>' : '') + esc(g.title) + '</h2><span class="sub">' + g.items.length + '</span></div><div class="thead"><span></span><span>Task</span><span>Subject</span><span>Importance</span><span>Due</span><span>Studied</span><span></span></div><ul class="list">' + g.items.map(t => taskRow(t, true)).join('') + '</ul></section>').join('')
         : '<section class="card"><p class="empty">' + (done ? 'No finished tasks yet.' : 'Nothing to do. Add a task above.') + '</p></section>');
   }
 
@@ -321,5 +329,5 @@
       '<button class="btn danger" data-act="erase">Erase everything</button></div></section>';
   }
 
-  window.Pages = { setup, home, tasks, task, subjects, subject, shop, history, settings, blocks, gemN };
+  window.Pages = { rank, tagSubject, tagLevel, setup, home, tasks, task, subjects, subject, shop, history, settings, blocks, gemN };
 })();

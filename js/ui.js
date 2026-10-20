@@ -39,8 +39,7 @@
     dueLabel: s => new Date(s + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }),
     // screen state that is not saved
     s: {
-      draft: { subjectId: '', todoId: '' },
-      minimized: false, summary: null, startOpen: false,
+      minimized: false, summary: null, startOpen: false, pickQ: '', pickSubject: '', focusTab: 'next',
       taskTab: 'open', taskGroup: 'importance',
       editShop: false, addSubject: false,
       focusBlock: '', focusSel: ''

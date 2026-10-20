@@ -71,7 +71,14 @@
 
   function startSession(state, subjectId, todoId, now) {
     if (state.active) return;
-    state.active = { start: now, subjectId: subjectId || '', todoId: todoId || '', pausedAt: 0, pausedMs: 0 };
+    state.active = { start: now, subjectId: subjectId || '', todoId: todoId || '', pausedAt: 0, pausedMs: 0, segs: [], segBase: 0 };
+  }
+  /* Move the running timer to another task. Time so far is kept against the old one. */
+  function switchTo(state, todoId, subjectId, now) {
+    const a = state.active; if (!a || (a.todoId === todoId && a.subjectId === subjectId)) return;
+    const secs = elapsed(a, now) - a.segBase;
+    if (secs > 0) { a.segs.push({ todoId: a.todoId, subjectId: a.subjectId, secs }); a.segBase += secs; }
+    a.todoId = todoId; a.subjectId = subjectId;
   }
   function pause(state, now) { const a = state.active; if (a && !a.pausedAt) a.pausedAt = now; }
   function resume(state, now) { const a = state.active; if (a && a.pausedAt) { a.pausedMs += now - a.pausedAt; a.pausedAt = 0; } }
@@ -82,8 +89,13 @@
     const st = state.settings, uid = window.Store.uid;
     const cap = st.maxSessionMin * 60, raw = elapsed(a, now), secs = Math.min(raw, cap);
     state.active = null;
-    state.sessions.push({ id: uid(), start: a.start, end: now, secs, subjectId: a.subjectId, todoId: a.todoId });
-    const result = { secs, gems: 0, capped: raw > cap, todoId: a.todoId };
+    // one record per task worked on; the session limit is taken off the latest first
+    const segs = a.segs.concat([{ todoId: a.todoId, subjectId: a.subjectId, secs: raw - a.segBase }]);
+    let over = raw - secs;
+    for (let i = segs.length - 1; i >= 0 && over > 0; i--) { const cut = Math.min(segs[i].secs, over); segs[i].secs -= cut; over -= cut; }
+    segs.filter((g, i) => g.secs > 0 || segs.length === 1).forEach(g =>
+      state.sessions.push({ id: uid(), start: a.start, end: now, secs: g.secs, subjectId: g.subjectId, todoId: g.todoId }));
+    const result = { secs, gems: 0, capped: raw > cap, todoId: a.todoId, tasks: segs.filter(g => g.todoId).length };
     const study = Math.floor(secs / 60 * st.gemsPerMin);
     if (study > 0) state.ledger.push({ id: uid(), at: now, type: 'study', gems: study, note: Math.floor(secs / 60) + ' min studied' });
     result.gems += study;
@@ -109,5 +121,5 @@
     return true;
   }
 
-  window.Logic = { ymd, startOfDay, addDays, unitOf, unitSecs, timeline, weekUnits, balance, taskSecs, subjectSecs, elapsed, startSession, pause, resume, endSession, buy };
+  window.Logic = { ymd, startOfDay, addDays, unitOf, unitSecs, timeline, weekUnits, balance, taskSecs, subjectSecs, elapsed, startSession, switchTo, pause, resume, endSession, buy };
 })();
