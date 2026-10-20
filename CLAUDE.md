@@ -5,7 +5,7 @@ Study planner for 2027.
 - Repo: `ldg224/2027a1b2c3d4e5` (public), branch `main`. Cloned at `C:\Claude\Projects\27Study`. The repo name is a placeholder; the project is called 27Study.
 - Hosting: GitHub Pages is set up on the repo (first commit "Setup Github Pages").
 - Stack: plain HTML, CSS and JavaScript, no build step. Data is in browser localStorage for now (`js/store.js`); Supabase sync is planned, see the private plan.
-- Files: `js/store.js` (data), `js/logic.js` (goals, streaks, gems), `js/app.js` (UI), `css/style.css`.
+- Files: `js/store.js` (data), `js/logic.js` (goals, streaks, gems), `js/ui.js` (icons, helpers, screen state), `js/pages.js` (pages), `js/focus.js` (focus screen, dialogs), `js/app.js` (shell, routing, events), `css/style.css`.
 
 ## Where to read first
 - `README.md`: overview.

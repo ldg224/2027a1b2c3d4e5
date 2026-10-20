@@ -45,28 +45,52 @@
     return { units: out, streak, freezesLeft: freezes.length - used };
   }
 
+  /* This week as six bars: Mon to Fri, then the weekend as one. */
+  function weekUnits(state, now) {
+    const st = state.settings, today = startOfDay(now), mon = addDays(today, -((today.getDay() + 6) % 7));
+    const out = [];
+    for (let i = 0; i < 6; i++) {
+      const day = addDays(mon, i), u = unitOf(day, st), secs = unitSecs(state, u);
+      out.push({
+        label: i < 5 ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][i] : 'Weekend', goalSec: u.goalSec, secs,
+        future: day > today, current: i < 5 ? +day === +today : today >= day,
+        met: secs >= u.goalSec, ended: u.end.getTime() <= now
+      });
+    }
+    return out;
+  }
+
   const balance = state => state.ledger.reduce((a, l) => a + l.gems, 0);
+  const taskSecs = (state, id) => state.sessions.filter(s => s.todoId === id).reduce((a, s) => a + s.secs, 0);
+  const subjectSecs = (state, id, since) => state.sessions.filter(s => s.subjectId === id && (!since || s.start >= since)).reduce((a, s) => a + s.secs, 0);
+
+  /* Seconds the running timer has counted, not including time paused. */
+  function elapsed(a, now) {
+    return Math.max(0, Math.floor(((a.pausedAt || now) - a.start - a.pausedMs) / 1000));
+  }
 
   function startSession(state, subjectId, todoId, now) {
     if (state.active) return;
-    state.active = { start: now, subjectId: subjectId || '', todoId: todoId || '' };
+    state.active = { start: now, subjectId: subjectId || '', todoId: todoId || '', pausedAt: 0, pausedMs: 0 };
   }
+  function pause(state, now) { const a = state.active; if (a && !a.pausedAt) a.pausedAt = now; }
+  function resume(state, now) { const a = state.active; if (a && a.pausedAt) { a.pausedMs += now - a.pausedAt; a.pausedAt = 0; } }
 
   /* Ends the timer, records the session and pays out gems. */
   function endSession(state, now) {
     const a = state.active; if (!a) return null;
     const st = state.settings, uid = window.Store.uid;
-    const secs = Math.max(0, Math.round((now - a.start) / 1000));
+    const cap = st.maxSessionMin * 60, raw = elapsed(a, now), secs = Math.min(raw, cap);
     state.active = null;
     state.sessions.push({ id: uid(), start: a.start, end: now, secs, subjectId: a.subjectId, todoId: a.todoId });
-    const result = { secs, gems: 0 };
+    const result = { secs, gems: 0, capped: raw > cap, todoId: a.todoId };
     const study = Math.floor(secs / 60 * st.gemsPerMin);
     if (study > 0) state.ledger.push({ id: uid(), at: now, type: 'study', gems: study, note: Math.floor(secs / 60) + ' min studied' });
     result.gems += study;
     const u = unitOf(new Date(a.start), st);
     if (unitSecs(state, u) >= u.goalSec && !state.ledger.some(l => l.type === 'goal' && l.unit === u.key)) {
       state.ledger.push({ id: uid(), at: now, type: 'goal', gems: st.goalBonus, note: 'Goal met', unit: u.key });
-      result.gems += st.goalBonus;
+      result.gems += st.goalBonus; result.goalMet = true;
       const t = timeline(state, now);
       if (st.streakEvery > 0 && t.streak > 0 && t.streak % st.streakEvery === 0) {
         state.ledger.push({ id: uid(), at: now, type: 'streak', gems: st.streakBonus, note: t.streak + ' in a row', unit: u.key });
@@ -85,5 +109,5 @@
     return true;
   }
 
-  window.Logic = { ymd, startOfDay, addDays, unitOf, unitSecs, timeline, balance, startSession, endSession, buy };
+  window.Logic = { ymd, startOfDay, addDays, unitOf, unitSecs, timeline, weekUnits, balance, taskSecs, subjectSecs, elapsed, startSession, pause, resume, endSession, buy };
 })();
